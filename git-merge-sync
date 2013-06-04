@@ -36,19 +36,6 @@ sub usage_man() {
 
 my (%opt);
 
-sub load_options() {
-	use Getopt::Long;
-
-	Getopt::Long::Configure("bundling");
-	GetOptions(\%opt,
-		"help|h|?",
-		"man",
-		"version",
-	)
-		or pod2usage(2)
-	;
-}
-
 sub process_info_options() {
 	pod2usage(1)
 		if defined $opt{help}
@@ -63,8 +50,23 @@ sub process_info_options() {
 	;
 }
 
+sub load_options() {
+	use Getopt::Long;
+
+	Getopt::Long::Configure("bundling");
+	GetOptions(\%opt,
+		"help|h|?",
+		"man",
+		"version",
+	)
+		or pod2usage(2)
+	;
+
+	process_info_options();
+
+}
+
 load_options();
-process_info_options();
 
 __END__;
 
