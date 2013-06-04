@@ -3,3 +3,99 @@
 use strict;
 use warnings;
 use 5.010;
+
+use Pod::Usage;
+
+use constant {
+	VERSION_NAME   => 'merge-sync',
+	VERSION_NUMBER => '0.0.0',
+};
+use constant {
+	VERSION => VERSION_NAME . '/' . VERSION_NUMBER,
+};
+
+# подробный man программы
+sub usage_man() {
+	use Pod::Man;
+
+	my $parser = Pod::Man->new(
+		center  => VERSION_NAME . " Manual",
+		release => VERSION_NUMBER,
+	);
+	if ( open(my $man, "|man -l -") ) {
+		$parser->parse_from_file(__FILE__, $man);
+		close $man;
+		exit 0;
+	}
+	else {
+		warn "Can't create a pipe to man tool\n";
+		warn "Try to execute:  pod2man '$0' | man -l -\n";
+		exit 1;
+	}
+}
+
+my (%opt);
+
+sub load_options() {
+	use Getopt::Long;
+
+	Getopt::Long::Configure("bundling");
+	GetOptions(\%opt,
+		"help|h|?",
+		"man",
+		"version",
+	)
+		or pod2usage(2)
+	;
+}
+
+sub process_info_options() {
+	pod2usage(1)
+		if defined $opt{help}
+	;
+
+	usage_man()
+		if defined $opt{man}
+	;
+
+	say(VERSION) and exit(0)
+		if defined $opt{version}
+	;
+}
+
+load_options();
+process_info_options();
+
+__END__;
+
+=pod
+
+=head1 NAME
+
+=head1 SYNOPSIS
+
+B<merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
+
+=head1 DESCRIPTION
+
+=head1 OPTIONS
+
+=over
+
+=item B<-h>, B<-?>, B<--help>
+
+Print short help about usage and exit.
+
+=item B<--man>
+
+Display full man and exit.
+
+=item B<--version>
+
+Print program version and exit.
+
+=back
+
+=head1 AUTHORS
+
+=cut
