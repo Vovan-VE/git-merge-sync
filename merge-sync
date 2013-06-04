@@ -74,9 +74,27 @@ __END__;
 
 =head1 SYNOPSIS
 
+B<merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
+
 =head1 DESCRIPTION
 
 =head1 OPTIONS
+
+=over
+
+=item B<-h>, B<-?>, B<--help>
+
+Print short help about usage and exit.
+
+=item B<--man>
+
+Display full man and exit.
+
+=item B<--version>
+
+Print program version and exit.
+
+=back
 
 =head1 AUTHORS
 
