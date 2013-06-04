@@ -3,3 +3,50 @@
 use strict;
 use warnings;
 use 5.010;
+
+use Getopt::Long;
+use Pod::Usage;
+
+use constant {
+	VERSION_NAME   => 'merge-sync',
+	VERSION_NUMBER => '0.0.0',
+};
+use constant {
+	VERSION => VERSION_NAME . '/' . VERSION_NUMBER,
+};
+
+my (%opt);
+
+sub load_options() {
+	Getopt::Long::Configure("bundling");
+	GetOptions(\%opt,
+		"help|h|?",
+	)
+		or pod2usage(2)
+	;
+}
+
+sub process_info_options() {
+	pod2usage(1)
+		if defined $opt{help}
+	;
+}
+
+load_options();
+process_info_options();
+
+__END__;
+
+=pod
+
+=head1 NAME
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 OPTIONS
+
+=head1 AUTHORS
+
+=cut
