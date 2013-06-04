@@ -34,7 +34,7 @@ sub usage_man() {
 	}
 }
 
-my (%opt);
+my (%opt, @branches);
 
 sub process_info_options() {
 	pod2usage(1)
@@ -64,6 +64,9 @@ sub load_options() {
 
 	process_info_options();
 
+	@branches = @ARGV
+		or pod2usage(2)
+	;
 }
 
 load_options();
@@ -78,6 +81,8 @@ git-merge-sync - a tool for merging and syncronizing cascaded branches
 in Git repository
 
 =head1 SYNOPSIS
+
+B<git-merge-sync> [I<options>] [B<-->] I<branch> ...
 
 B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
 
@@ -98,6 +103,10 @@ Display full man and exit.
 =item B<--version>
 
 Print program version and exit.
+
+=item I<branch>
+
+Branches names for work on. At least one branch is required.
 
 =back
 
