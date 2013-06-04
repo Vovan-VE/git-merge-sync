@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use 5.010;
 
-use Getopt::Long;
 use Pod::Usage;
 
 use constant {
@@ -38,6 +37,8 @@ sub usage_man() {
 my (%opt);
 
 sub load_options() {
+	use Getopt::Long;
+
 	Getopt::Long::Configure("bundling");
 	GetOptions(\%opt,
 		"help|h|?",
