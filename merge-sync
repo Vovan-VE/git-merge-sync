@@ -15,12 +15,33 @@ use constant {
 	VERSION => VERSION_NAME . '/' . VERSION_NUMBER,
 };
 
+# подробный man программы
+sub usage_man() {
+	use Pod::Man;
+
+	my $parser = Pod::Man->new(
+		center  => VERSION_NAME . " Manual",
+		release => VERSION_NUMBER,
+	);
+	if ( open(my $man, "|man -l -") ) {
+		$parser->parse_from_file(__FILE__, $man);
+		close $man;
+		exit 0;
+	}
+	else {
+		warn "Can't create a pipe to man tool\n";
+		warn "Try to execute:  pod2man '$0' | man -l -\n";
+		exit 1;
+	}
+}
+
 my (%opt);
 
 sub load_options() {
 	Getopt::Long::Configure("bundling");
 	GetOptions(\%opt,
 		"help|h|?",
+		"man",
 	)
 		or pod2usage(2)
 	;
@@ -29,6 +50,10 @@ sub load_options() {
 sub process_info_options() {
 	pod2usage(1)
 		if defined $opt{help}
+	;
+
+	usage_man()
+		if defined $opt{man}
 	;
 }
 
