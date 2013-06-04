@@ -7,7 +7,7 @@ use 5.010;
 use Pod::Usage;
 
 use constant {
-	VERSION_NAME   => 'merge-sync',
+	VERSION_NAME   => 'git-merge-sync',
 	VERSION_NUMBER => '0.0.0',
 };
 use constant {
@@ -72,12 +72,12 @@ __END__;
 
 =head1 NAME
 
-merge-sync - a tool for merging and syncronizing cascaded branches
+git-merge-sync - a tool for merging and syncronizing cascaded branches
 in Git repository
 
 =head1 SYNOPSIS
 
-B<merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
+B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
 
 =head1 DESCRIPTION
 
