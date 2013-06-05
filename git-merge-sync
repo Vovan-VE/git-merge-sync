@@ -71,9 +71,7 @@ sub load_options() {
 
 sub check_if_repository() {
 	`git status --short`;
-	die "E! Not in Git repository. Aborting\n"
-		if $?
-	;
+	$? && die "E! Not in Git repository. Aborting\n";
 }
 
 sub check_if_branches() {
