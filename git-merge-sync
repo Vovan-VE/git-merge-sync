@@ -76,8 +76,29 @@ sub check_if_repository() {
 	;
 }
 
+sub check_if_branches() {
+	my $repo_branches = `git branch`;
+	$? && die "E! Unable to get branches list of the repository. Aborted\n";
+
+	my %unknown_branches = map { $_ => 1 } @branches;
+
+	my @all_branches = split(/\n/, $repo_branches);
+	for my $branch (@all_branches) {
+		$branch =~ s/[\s*]+//;
+		delete $unknown_branches{$branch};
+	}
+
+	if (%unknown_branches) {
+		warn "!E There are no such branches in the repository:\n";
+		warn "!E     * $_\n" for keys %unknown_branches;
+		die  "!E Aborted\n";
+	}
+}
+
 sub validate_asked() {
 	check_if_repository();
+
+	check_if_branches();
 }
 
 
