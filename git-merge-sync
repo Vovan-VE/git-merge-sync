@@ -34,7 +34,7 @@ sub usage_man() {
 	}
 }
 
-my (%opt);
+my (%opt, @branches);
 
 sub process_info_options() {
 	pod2usage(1)
@@ -64,9 +64,46 @@ sub load_options() {
 
 	process_info_options();
 
+	@branches = @ARGV
+		or pod2usage(2)
+	;
 }
 
+sub check_if_repository() {
+	`git status --short`;
+	die "E! Not in Git repository. Aborting\n"
+		if $?
+	;
+}
+
+sub check_if_branches() {
+	my $repo_branches = `git branch`;
+	$? && die "E! Unable to get branches list of the repository. Aborted\n";
+
+	my %unknown_branches = map { $_ => 1 } @branches;
+
+	my @all_branches = split(/\n/, $repo_branches);
+	for my $branch (@all_branches) {
+		$branch =~ s/[\s*]+//;
+		delete $unknown_branches{$branch};
+	}
+
+	if (%unknown_branches) {
+		warn "!E There are no such branches in the repository:\n";
+		warn "!E     * $_\n" for keys %unknown_branches;
+		die  "!E Aborted\n";
+	}
+}
+
+sub validate_asked() {
+	check_if_repository();
+
+	check_if_branches();
+}
+
+
 load_options();
+validate_asked();
 
 __END__;
 
@@ -78,6 +115,8 @@ git-merge-sync - a tool for merging and syncronizing cascaded branches
 in Git repository
 
 =head1 SYNOPSIS
+
+B<git-merge-sync> [I<options>] [B<-->] I<branch> ...
 
 B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
 
@@ -98,6 +137,10 @@ Display full man and exit.
 =item B<--version>
 
 Print program version and exit.
+
+=item I<branch>
+
+Branches names for work on. At least one branch is required.
 
 =back
 
