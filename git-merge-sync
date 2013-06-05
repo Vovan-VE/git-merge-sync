@@ -69,7 +69,20 @@ sub load_options() {
 	;
 }
 
+sub check_if_repository() {
+	`git status --short`;
+	die "E! Not in Git repository. Aborting\n"
+		if $?
+	;
+}
+
+sub validate_asked() {
+	check_if_repository();
+}
+
+
 load_options();
+validate_asked();
 
 __END__;
 
