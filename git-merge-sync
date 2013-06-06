@@ -54,10 +54,19 @@ sub load_options() {
 	use Getopt::Long;
 
 	Getopt::Long::Configure("bundling");
+
+	%opt = (
+		pull => 1,
+		push => 0,
+	);
+
 	GetOptions(\%opt,
 		"help|h|?",
 		"man",
 		"version",
+		"pull!",
+		"merge!",
+		"push!",
 	)
 		or pod2usage(2)
 	;
@@ -67,6 +76,14 @@ sub load_options() {
 	@branches = @ARGV
 		or pod2usage(2)
 	;
+
+	if (1 == scalar @branches) {
+		$opt{merge} && die "E! You want --merge, but only one branch was passed\n";
+	}
+
+	unless ($opt{pull} || $opt{merge} || $opt{push}) {
+		die "E! All actions are disabled. Nothing to do. Aborting\n";
+	}
 }
 
 sub check_if_repository() {
@@ -108,7 +125,19 @@ sub validate_asked() {
 	check_if_branches();
 }
 
+sub perform_the_pull() {
+}
+
+sub perform_the_merge() {
+}
+
+sub perform_the_push() {
+}
+
 sub do_the_work() {
+	$opt{pull}  && perform_the_pull();
+	$opt{merge} && perform_the_merge();
+	$opt{push}  && perform_the_push();
 }
 
 
@@ -127,7 +156,7 @@ in Git repository
 
 =head1 SYNOPSIS
 
-B<git-merge-sync> [I<options>] [B<-->] I<branch> ...
+B<git-merge-sync> [I<options>] [B<-->[B<no>]B<pull>] [B<-->[B<no>]B<merge>] [B<-->[B<no>]B<push>] [B<-->] I<branch> ...
 
 B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
 
@@ -144,6 +173,34 @@ Print short help about usage and exit.
 =item B<--man>
 
 Display full man and exit.
+
+=item B<--merge>
+
+Enable the merge action explicitly. At least to branches required for merging.
+By default this option is disable when only one branch passed, and enabled for
+multiple branches list.
+
+=item B<--no-merge>, B<--nomerge>
+
+Disable the merge action. See B<--merge> above.
+
+=item B<--pull>
+
+Enable the pull action explicitly. Currently this option is enabled by default
+to work with up-to-date branches.
+
+=item B<--no-pull>, B<--nopull>
+
+Disable the pull action. See B<--pull> above.
+
+=item B<--push>
+
+Enable the push action. Currently this option is disabled by default. You should
+to check the work result before pushing.
+
+=item B<--no-push>, B<--nopush>
+
+Disable the push action. See B<--push> above.
 
 =item B<--version>
 
