@@ -108,9 +108,13 @@ sub validate_asked() {
 	check_if_branches();
 }
 
+sub do_the_work() {
+}
+
 
 load_options();
 validate_asked();
+do_the_work();
 
 __END__;
 
