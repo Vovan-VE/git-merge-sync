@@ -34,7 +34,7 @@ sub usage_man() {
 	}
 }
 
-my (%opt, @branches);
+my (%opt, @branches, %branch_track);
 
 sub process_info_options() {
 	pod2usage(1)
@@ -75,15 +75,24 @@ sub check_if_repository() {
 }
 
 sub check_if_branches() {
-	my $repo_branches = `git branch`;
-	$? && die "E! Unable to get branches list of the repository. Aborted\n";
+	my $repo_branches = `git for-each-ref '--format=%(refname:short)%09%(upstream:short)' refs/heads`;
+	$? && die "E! Unable to list existing branches. Aborted\n";
 
 	my %unknown_branches = map { $_ => 1 } @branches;
 
-	my @all_branches = split(/\n/, $repo_branches);
-	for my $branch (@all_branches) {
-		$branch =~ s/[\s*]+//;
-		delete $unknown_branches{$branch};
+	%branch_track = ();
+	for my $line ( split /\n/, $repo_branches ) {
+		# local-branch <TAB> remote/branch
+		# local-branch <TAB>
+		unless ($line =~ /^(?<local>\S+)\t(?<upstream>\S*)$/) {
+			warn "W* Result of `git for-each-ref` did not match expectations. Ignore the line.\n";
+			next;
+		}
+		my $local    = $+{local};
+		my $upstream = $+{upstream};
+
+		$branch_track{$local} = $upstream;
+		delete $unknown_branches{$local};
 	}
 
 	if (%unknown_branches) {
