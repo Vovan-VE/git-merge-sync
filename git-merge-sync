@@ -87,9 +87,9 @@ sub check_if_branches() {
 	}
 
 	if (%unknown_branches) {
-		warn "!E There are no such branches in the repository:\n";
-		warn "!E     * $_\n" for keys %unknown_branches;
-		die  "!E Aborted\n";
+		warn "E! There are no such branches in the repository:\n";
+		warn "E!     * $_\n" for keys %unknown_branches;
+		die  "E! Aborted\n";
 	}
 }
 
