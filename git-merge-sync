@@ -140,7 +140,8 @@ Print program version and exit.
 
 =item I<branch>
 
-Branches names for work on. At least one branch is required.
+Branches names for work on. At least one branch is required. All specified
+branches must be an existing local branches in the repository.
 
 =back
 
