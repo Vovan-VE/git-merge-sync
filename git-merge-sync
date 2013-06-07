@@ -146,7 +146,62 @@ sub exec_direct($@) {
 	}
 }
 
+sub is_status_clear() {
+	# смотрим git diff и git diff --cached
+	# оба с опцией --exit-code
+	# если оба говорят, что изменений нет, то (могут быть только untracked)
+	# считаем статус чистым
+
+	`git diff --exit-code`;
+	$? && return;
+
+	`git diff --cached --exit-code`;
+	$? && return;
+
+	return 1;
+}
+
 sub perform_the_pull() {
+	print "==== Processing the pull... ======================\n";
+
+	my $tracked_count = 0;
+	for my $branch (@branches) {
+		my $track = $branch_track{$branch};
+
+		if ($track) {
+			++$tracked_count;
+			print "  $branch: upstream is $track\n";
+
+			print "  $branch: going to switch branch to $branch\n";
+			is_status_clear()
+				or die "E! There are some uncommitted changes. Aborting\n";
+			;
+
+			exec_direct(
+				"git checkout $branch",
+				("git", "checkout", $branch)
+			);
+			$? && die "E! Failed to switch branch to $branch\n";
+
+			print "  $branch: going to pull from default upstream $track\n";
+			exec_direct(
+				'git pull --ff-only',
+				("git", "pull", "--ff-only")
+			);
+			$? && die "E! Failed to pull. Aborting\n";
+
+			print "  $branch: done.\n\n";
+		}
+		else {
+			print "  $branch: no upstream branch set\n";
+		}
+	}
+
+	unless ($tracked_count) {
+		warn "i: No upstream branches detected. Pull did nothing.\n";
+	}
+
+	print "==== End of the pull =============================\n";
 }
 
 sub perform_the_merge() {
