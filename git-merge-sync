@@ -279,6 +279,55 @@ sub perform_the_merge() {
 }
 
 sub perform_the_push() {
+	print "==== Processing the push... ======================\n";
+
+	print "Summarizing default upstream branches for push\n";
+
+	my %tracks;
+	for my $branch (@branches) {
+		my $track = $branch_track{$branch};
+
+		if ($track) {
+			print "  $branch: upstream is $track\n";
+
+			unless ($track =~ m~(?:^|/)(?<repo>[^/]+)/(?<ref>[^/]+)$~) {
+				warn "W! Unexpected track format. Want `<repo>/<branch>` or `.../<repo>/<branch>`.\n";
+				next;
+			}
+
+			my ($repo, $ref) = ($+{repo}, $+{ref});
+
+			$tracks{$repo} = [] unless exists $tracks{$repo};
+			push @{$tracks{$repo}}, $ref;
+		}
+		else {
+			print "  $branch: no upstream branch set\n";
+		}
+	}
+
+	print "Done.\n";
+
+	if (%tracks) {
+		print "Performing real push\n";
+
+		for my $repo (keys %tracks) {
+			my @refs = @{$tracks{$repo}};
+			print "  $repo: @refs\n";
+
+			exec_direct(
+				"git push $repo @refs",
+				("git", "push", $repo, @refs)
+			);
+			$? && die "E! Failed to push into $repo\n";
+
+			print "  $repo: Done\n\n";
+		}
+	}
+	else {
+		warn "i: No upstream branches detected. Push did nothing.\n";
+	}
+
+	print "==== End of the push =============================\n";
 }
 
 sub do_the_work() {
