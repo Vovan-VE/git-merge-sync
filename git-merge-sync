@@ -211,9 +211,9 @@ sub perform_the_push() {
 }
 
 sub do_the_work() {
-	$opt{pull}  && perform_the_pull();
-	$opt{merge} && perform_the_merge();
-	$opt{push}  && perform_the_push();
+	perform_the_pull()  if $opt{pull};
+	perform_the_merge() if $opt{merge};
+	perform_the_push()  if $opt{push};
 }
 
 
