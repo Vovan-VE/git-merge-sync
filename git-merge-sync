@@ -80,6 +80,9 @@ sub load_options() {
 	if (1 == scalar @branches) {
 		$opt{merge} && die "E! You want --merge, but only one branch was passed\n";
 	}
+	else {
+		$opt{merge} = 1 unless defined $opt{merge};
+	}
 
 	unless ($opt{pull} || $opt{merge} || $opt{push}) {
 		die "E! All actions are disabled. Nothing to do. Aborting\n";
@@ -161,6 +164,29 @@ sub is_status_clear() {
 	return 1;
 }
 
+sub need_true_merge($$) {
+	my ($current, $side) = @_;
+
+	# ищем хотя бы 1 коммит в $side, недостижимый из $current
+	#
+	# здесь такого нет:
+	#
+	#     -o--o--o--o    current
+	#        /
+	#     --o            side
+	#
+	# а здесь есть:
+	#
+	#     -o--o--o--o    current
+	#        /
+	#     --o-----*      side
+	my $out = `git rev-list -n 1 '$side' '^$current'`;
+	$? && die "E! Failed to execute `git rev-list -n 1 '$side' '^$current'`\n";
+
+	# слияние нужно, если такой коммит есть
+	return '' ne $out;
+}
+
 sub perform_the_pull() {
 	print "==== Processing the pull... ======================\n";
 
@@ -205,6 +231,51 @@ sub perform_the_pull() {
 }
 
 sub perform_the_merge() {
+	print "==== Processing the merge... =====================\n";
+
+	# ver-1, [ver-2, ver-3, ver-4]
+	my ($prev_branch, @next_branches) = @branches;
+	while (@next_branches) {
+		# ver-2, [ver-3, ver-4]
+		my $current_branch = shift @next_branches;
+
+		# ver-2* <-- ver-1
+
+		my $prefix = "$current_branch <-- $prev_branch";
+		if (need_true_merge($current_branch, $prev_branch)) {
+
+			print "  $prefix: merging...\n";
+
+			print "  $prefix: going to switch branch to $current_branch\n";
+			is_status_clear()
+				or die "E! There are some uncommitted changes. Aborting\n";
+			;
+
+			exec_direct(
+				"git checkout $current_branch",
+				("git", "checkout", $current_branch)
+			);
+			$? && die "E! Failed to switch branch to $current_branch\n";
+
+			print "  $prefix: going to merge branch $prev_branch here\n";
+
+			exec_direct(
+				"git merge --no-ff $prev_branch",
+				("git", "merge", "--no-ff", $prev_branch)
+			);
+			$? && die "E! Failed to merge branch $prev_branch into $current_branch\n";
+
+			print "  $prefix: done.\n\n";
+		}
+		else {
+			print "  $prefix: merge not need\n\n";
+		}
+
+		# ...* <-- ver-2
+		$prev_branch = $current_branch;
+	}
+
+	print "==== End of the merge ============================\n";
 }
 
 sub perform_the_push() {
