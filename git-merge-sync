@@ -372,7 +372,7 @@ Display full man and exit.
 
 =item B<--merge>
 
-Enable the merge action explicitly. At least to branches required for merging.
+Enable the merge action explicitly. At least two branches required for merging.
 By default this option is disable when only one branch passed, and enabled for
 multiple branches list.
 
