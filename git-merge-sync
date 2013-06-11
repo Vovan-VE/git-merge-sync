@@ -359,6 +359,63 @@ B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
 
 =over
 
+=item I<branch> ...
+
+Branches names for work on. At least one branch is required. All specified
+branches must be an existing local branches in the repository. The order can
+take a sense for some actions.
+
+=back
+
+=head2 Actions
+
+Specify which actions to do with the I<branch>es. If no actions passed,
+B<--pull> and B<--merge> will be performed by default.
+
+Actions always executed in the following order (if each one is present):
+
+=over
+
+=item 1. B<--pull>
+
+=item 2. B<--merge>
+
+=item 3. B<--push>
+
+=back
+
+If someone action will fail, whole execution will be stopped.
+
+=over
+
+=item B<--merge>
+
+Perform the merge action. At least two branches required for merging.
+
+All specified I<branch>es will be merged from left to right to construct
+"a cascade": the first branch will be merged into the second one, then
+the second branch will be merged into the third and so on. Actual merges for
+each pair will be performed only when the left branch has some commits, which
+are inaccessible from the right branch. So, if the left branch is already merged
+into the right one, then no merge needed for such pair. See EXAMPLE below.
+
+=item B<--pull>
+
+Perform the pull action. Each asked branch will be checked out and then pulled
+from its own default upstream branch (if one was configured in the repo) with
+B<git pull --ff-only> command.
+
+=item B<--push>
+
+Perform the push action. All asked branches will be pushed into corresponding
+upstream branch, if one is configured into the repo.
+
+=back
+
+=head2 Options
+
+=over
+
 =item B<-h>, B<-?>, B<--help>
 
 Print short help about usage and exit.
@@ -367,42 +424,9 @@ Print short help about usage and exit.
 
 Display full man and exit.
 
-=item B<--merge>
-
-Enable the merge action explicitly. At least two branches required for merging.
-By default this option is disable when only one branch passed, and enabled for
-multiple branches list.
-
-=item B<--no-merge>, B<--nomerge>
-
-Disable the merge action. See B<--merge> above.
-
-=item B<--pull>
-
-Enable the pull action explicitly. Currently this option is enabled by default
-to work with up-to-date branches.
-
-=item B<--no-pull>, B<--nopull>
-
-Disable the pull action. See B<--pull> above.
-
-=item B<--push>
-
-Enable the push action. Currently this option is disabled by default. You should
-to check the work result before pushing.
-
-=item B<--no-push>, B<--nopush>
-
-Disable the push action. See B<--push> above.
-
 =item B<--version>
 
 Print program version and exit.
-
-=item I<branch>
-
-Branches names for work on. At least one branch is required. All specified
-branches must be an existing local branches in the repository.
 
 =back
 
