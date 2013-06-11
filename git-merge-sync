@@ -530,6 +530,8 @@ You can perform all actions in one command, if you want.
 
 =head1 AUTHORS
 
-Copyright (C) 2013 Vovan-VE <vovan-ve@yandex.ru>
+Git is a free and open source SCM tool. See <http://git-scm.com/>.
+
+The tool git-merge-sync is writen by Vovan-VE <vovan-ve@yandex.ru>.
 
 =cut
