@@ -196,7 +196,7 @@ sub perform_the_pull() {
 
 		if ($track) {
 			++$tracked_count;
-			print "  $branch: upstream is $track\n";
+			print "  $branch: <-- $track\n";
 
 			print "  $branch: going to switch branch to $branch\n";
 			is_status_clear()
@@ -227,7 +227,7 @@ sub perform_the_pull() {
 		warn "i: No upstream branches detected. Pull did nothing.\n";
 	}
 
-	print "==== End of the pull =============================\n";
+	print "==== End of the pull =============================\n\n";
 }
 
 sub perform_the_merge() {
@@ -275,7 +275,7 @@ sub perform_the_merge() {
 		$prev_branch = $current_branch;
 	}
 
-	print "==== End of the merge ============================\n";
+	print "==== End of the merge ============================\n\n";
 }
 
 sub perform_the_push() {
@@ -288,7 +288,7 @@ sub perform_the_push() {
 		my $track = $branch_track{$branch};
 
 		if ($track) {
-			print "  $branch: upstream is $track\n";
+			print "  $branch: --> $track\n";
 
 			unless ($track =~ m~(?:^|/)(?<repo>[^/]+)/(?<ref>[^/]+)$~) {
 				warn "W! Unexpected track format. Want `<repo>/<branch>` or `.../<repo>/<branch>`.\n";
@@ -327,7 +327,7 @@ sub perform_the_push() {
 		warn "i: No upstream branches detected. Push did nothing.\n";
 	}
 
-	print "==== End of the push =============================\n";
+	print "==== End of the push =============================\n\n";
 }
 
 sub do_the_work() {
