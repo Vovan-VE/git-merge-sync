@@ -298,7 +298,7 @@ sub perform_the_push() {
 			my ($repo, $ref) = ($+{repo}, $+{ref});
 
 			$tracks{$repo} = [] unless exists $tracks{$repo};
-			push @{$tracks{$repo}}, $ref;
+			push @{$tracks{$repo}}, "$branch:$ref";
 		}
 		else {
 			print "  $branch: no upstream branch set\n";
