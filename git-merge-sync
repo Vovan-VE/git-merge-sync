@@ -56,17 +56,15 @@ sub load_options() {
 	Getopt::Long::Configure("bundling");
 
 	%opt = (
-		pull => 1,
-		push => 0,
 	);
 
 	GetOptions(\%opt,
 		"help|h|?",
 		"man",
 		"version",
-		"pull!",
-		"merge!",
-		"push!",
+		"pull",
+		"merge",
+		"push",
 	)
 		or pod2usage(2)
 	;
@@ -80,12 +78,11 @@ sub load_options() {
 	if (1 == scalar @branches) {
 		$opt{merge} && die "E! You want --merge, but only one branch was passed\n";
 	}
-	else {
-		$opt{merge} = 1 unless defined $opt{merge};
-	}
 
 	unless ($opt{pull} || $opt{merge} || $opt{push}) {
-		die "E! All actions are disabled. Nothing to do. Aborting\n";
+		$opt{pull}  = 1;
+		$opt{merge} = 1;
+		$opt{push}  = 0;
 	}
 }
 
@@ -352,7 +349,7 @@ in Git repository
 
 =head1 SYNOPSIS
 
-B<git-merge-sync> [I<options>] [B<-->[B<no>]B<pull>] [B<-->[B<no>]B<merge>] [B<-->[B<no>]B<push>] [B<-->] I<branch> ...
+B<git-merge-sync> [I<options>] [I<actions>] [B<-->] I<branch> ...
 
 B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
 
