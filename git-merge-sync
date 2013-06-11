@@ -355,6 +355,18 @@ B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
 
 =head1 DESCRIPTION
 
+Pulls, merges and/or pushes multiple branches with one command. For pulling and
+pushing it uses corresponding configured upstream branches.
+
+The merge action basically is oriented to automate merging cascade-like branches
+like this:
+
+    --o---------*        ver-1
+       \         \
+    ----o----o----*      ver-2
+         \    \    \
+    ------o----o----*    ver-3
+
 =head1 OPTIONS
 
 =over
@@ -390,7 +402,8 @@ If someone action will fail, whole execution will be stopped.
 
 =item B<--merge>
 
-Perform the merge action. At least two branches required for merging.
+Perform the merge action. At least two branches required for merging. Working
+directory and index both must be clean.
 
 All specified I<branch>es will be merged from left to right to construct
 "a cascade": the first branch will be merged into the second one, then
@@ -403,7 +416,7 @@ into the right one, then no merge needed for such pair. See EXAMPLE below.
 
 Perform the pull action. Each asked branch will be checked out and then pulled
 from its own default upstream branch (if one was configured in the repo) with
-B<git pull --ff-only> command.
+B<git pull --ff-only> command. Working directory and index both must be clean.
 
 =item B<--push>
 
@@ -429,6 +442,91 @@ Display full man and exit.
 Print program version and exit.
 
 =back
+
+=head1 EXAMPLE
+
+Imaging the following history with the four branches: "lorem", "ipsum", "dolor"
+and "sit":
+
+    ------o              lorem --> origin/amet
+           \
+    ---o----o            ipsum --> origin/elit
+             \
+    --o--o----o          dolor
+       \       \
+    ----o--o----o---o    sit   --> foobar/sed
+
+Some branches has a configured upstream branches:
+
+    lorem --> origin/amet
+    ipsum --> origin/elit
+    dolor     (no upstream)
+    sit   --> foobar/sed
+
+If you create some new commits on the "ipsum" branch, the history will be:
+
+    ------o                  lorem
+           \
+    ---o----o--------*--*    ipsum
+             \
+    --o--o----o              dolor
+       \       \
+    ----o--o----o---o        sit
+
+Here * are a new commits.
+
+Now you want to merge branch "ipsum" into the "dolor" and the "dolor" into
+the "sit" to produce somethig like this:
+
+    ------o                      lorem
+           \
+    ---o----o--------*--*        ipsum
+             \           \
+    --o--o----o-----------*      dolor
+       \       \           \
+    ----o--o----o---o-------*    sit
+
+But at first you perform the pull action:
+
+    $ git-merge-sync --pull lorem ipsum dolor sit
+
+If some branches was updated in the remote, you may see somethid like this:
+
+    ------o                  lorem
+           \
+    ---o----o--------*--*    ipsum
+             \
+    --o--o----o              dolor
+       \       \       
+    ----o--o----o---o--@     sit
+
+Here @ is the new commit pulled from "sit"s upstream "foobar/sed".
+
+Now you perform the merge:
+
+    $ git-merge-sync --merge lorem ipsum dolor sit
+
+This action first want to merge "lorem" into "ipsum", but "lorem" has no new
+commits to merge, so first merge is not needed. Then "ipsum" will be merged
+into "dolor" and then "dolor" will be merged into "sit":
+
+    ------o                      lorem
+           \
+    ---o----o--------*--*        ipsum
+             \           \
+    --o--o----o-----------*      dolor
+       \       \           \
+    ----o--o----o---o--@----*    sit
+
+No you can push your changes back to remotes:
+
+    $ git-merge-sync --push lorem ipsum dolor sit
+
+Branch "lorem" was no updated and branch "dolor" has no configured upstream
+branch. So this push will push "ipsum" into its "origin/elit" and "sit" into its
+"foobar/sed".
+
+You can perform all actions in one command, if you want.
 
 =head1 AUTHORS
 
