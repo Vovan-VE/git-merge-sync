@@ -528,6 +528,10 @@ branch. So this push will push "ipsum" into its "origin/elit" and "sit" into its
 
 You can perform all actions in one command, if you want.
 
+=head1 CONFORMING TO
+
+The tool initially was developed for Git 1.7 and later.
+
 =head1 AUTHORS
 
 Git is a free and open source SCM tool. See <http://git-scm.com/>.
