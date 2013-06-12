@@ -536,6 +536,6 @@ The tool initially was developed for Git 1.7 and later.
 
 Git is a free and open source SCM tool. See <http://git-scm.com/>.
 
-The tool git-merge-sync is writen by Vovan-VE <vovan-ve@yandex.ru>.
+The tool git-merge-sync is writen by Vovan-VE <vovan-ve@yandex.ru> in 2013.
 
 =cut
