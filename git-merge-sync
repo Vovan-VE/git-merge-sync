@@ -1,0 +1,541 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use 5.010;
+
+use Pod::Usage;
+
+use constant {
+	VERSION_NAME   => 'git-merge-sync',
+	VERSION_NUMBER => '1.0.0',
+};
+use constant {
+	VERSION => VERSION_NAME . '/' . VERSION_NUMBER,
+};
+
+# подробный man программы
+sub usage_man() {
+	use Pod::Man;
+
+	my $parser = Pod::Man->new(
+		center  => VERSION_NAME . " Manual",
+		release => VERSION_NUMBER,
+	);
+	if ( open(my $man, "|man -l -") ) {
+		$parser->parse_from_file(__FILE__, $man);
+		close $man;
+		exit 0;
+	}
+	else {
+		warn "Can't create a pipe to man tool\n";
+		warn "Try to execute:  pod2man '$0' | man -l -\n";
+		exit 1;
+	}
+}
+
+my (%opt, @branches, %branch_track);
+
+sub process_info_options() {
+	pod2usage(1)
+		if defined $opt{help}
+	;
+
+	usage_man()
+		if defined $opt{man}
+	;
+
+	say(VERSION) and exit(0)
+		if defined $opt{version}
+	;
+}
+
+sub load_options() {
+	use Getopt::Long;
+
+	Getopt::Long::Configure("bundling");
+
+	%opt = (
+	);
+
+	GetOptions(\%opt,
+		"help|h|?",
+		"man",
+		"version",
+		"pull",
+		"merge",
+		"push",
+	)
+		or pod2usage(2)
+	;
+
+	process_info_options();
+
+	@branches = @ARGV
+		or pod2usage(2)
+	;
+
+	if (1 == scalar @branches) {
+		$opt{merge} && die "E! You want --merge, but only one branch was passed\n";
+	}
+
+	unless ($opt{pull} || $opt{merge} || $opt{push}) {
+		$opt{pull}  = 1;
+		$opt{merge} = 1;
+		$opt{push}  = 0;
+	}
+}
+
+sub check_if_repository() {
+	`git status --short`;
+	$? && die "E! Not in Git repository. Aborting\n";
+}
+
+sub check_if_branches() {
+	my $repo_branches = `git for-each-ref '--format=%(refname:short)%09%(upstream:short)' refs/heads`;
+	$? && die "E! Unable to list existing branches. Aborted\n";
+
+	my %unknown_branches = map { $_ => 1 } @branches;
+
+	%branch_track = ();
+	for my $line ( split /\n/, $repo_branches ) {
+		# local-branch <TAB> remote/branch
+		# local-branch <TAB>
+		unless ($line =~ /^(?<local>\S+)\t(?<upstream>\S*)$/) {
+			warn "W* Result of `git for-each-ref` did not match expectations. Ignore the line.\n";
+			next;
+		}
+		my $local    = $+{local};
+		my $upstream = $+{upstream};
+
+		$branch_track{$local} = $upstream;
+		delete $unknown_branches{$local};
+	}
+
+	if (%unknown_branches) {
+		warn "E! There are no such branches in the repository:\n";
+		warn "E!     * $_\n" for keys %unknown_branches;
+		die  "E! Aborted\n";
+	}
+}
+
+sub validate_asked() {
+	check_if_repository();
+
+	check_if_branches();
+}
+
+sub exec_direct($@) {
+	my ($header, @xarg) = @_;
+
+	my $end = '';
+	if ($header) {
+		print  "<<<<<----- $header ------------------------<<<<<\n";
+		$end = ">>>>>----- $header ------------------------>>>>>\n";
+	}
+
+	my $pid = open(my $h, "|-", @xarg);
+
+	if ($pid) {
+		close $h;
+		print $end if $end ne '';
+	}
+	else {
+		print $end if $end ne '';
+		die "Failed to open a pipe\n";
+	}
+}
+
+sub is_status_clear() {
+	# смотрим git diff и git diff --cached
+	# оба с опцией --exit-code
+	# если оба говорят, что изменений нет, то (могут быть только untracked)
+	# считаем статус чистым
+
+	`git diff --exit-code`;
+	$? && return;
+
+	`git diff --cached --exit-code`;
+	$? && return;
+
+	return 1;
+}
+
+sub need_true_merge($$) {
+	my ($current, $side) = @_;
+
+	# ищем хотя бы 1 коммит в $side, недостижимый из $current
+	#
+	# здесь такого нет:
+	#
+	#     -o--o--o--o    current
+	#        /
+	#     --o            side
+	#
+	# а здесь есть:
+	#
+	#     -o--o--o--o    current
+	#        /
+	#     --o-----*      side
+	my $out = `git rev-list -n 1 '$side' '^$current'`;
+	$? && die "E! Failed to execute `git rev-list -n 1 '$side' '^$current'`\n";
+
+	# слияние нужно, если такой коммит есть
+	return '' ne $out;
+}
+
+sub perform_the_pull() {
+	print "==== Processing the pull... ======================\n";
+
+	my $tracked_count = 0;
+	for my $branch (@branches) {
+		my $track = $branch_track{$branch};
+
+		if ($track) {
+			++$tracked_count;
+			print "  $branch: <-- $track\n";
+
+			print "  $branch: going to switch branch to $branch\n";
+			is_status_clear()
+				or die "E! There are some uncommitted changes. Aborting\n";
+			;
+
+			exec_direct(
+				"git checkout $branch",
+				("git", "checkout", $branch)
+			);
+			$? && die "E! Failed to switch branch to $branch\n";
+
+			print "  $branch: going to pull from default upstream $track\n";
+			exec_direct(
+				'git pull --ff-only',
+				("git", "pull", "--ff-only")
+			);
+			$? && die "E! Failed to pull. Aborting\n";
+
+			print "  $branch: done.\n\n";
+		}
+		else {
+			print "  $branch: no upstream branch set\n";
+		}
+	}
+
+	unless ($tracked_count) {
+		warn "i: No upstream branches detected. Pull did nothing.\n";
+	}
+
+	print "==== End of the pull =============================\n\n";
+}
+
+sub perform_the_merge() {
+	print "==== Processing the merge... =====================\n";
+
+	# ver-1, [ver-2, ver-3, ver-4]
+	my ($prev_branch, @next_branches) = @branches;
+	while (@next_branches) {
+		# ver-2, [ver-3, ver-4]
+		my $current_branch = shift @next_branches;
+
+		# ver-2* <-- ver-1
+
+		my $prefix = "$current_branch <-- $prev_branch";
+		if (need_true_merge($current_branch, $prev_branch)) {
+
+			print "  $prefix: merging...\n";
+
+			print "  $prefix: going to switch branch to $current_branch\n";
+			is_status_clear()
+				or die "E! There are some uncommitted changes. Aborting\n";
+			;
+
+			exec_direct(
+				"git checkout $current_branch",
+				("git", "checkout", $current_branch)
+			);
+			$? && die "E! Failed to switch branch to $current_branch\n";
+
+			print "  $prefix: going to merge branch $prev_branch here\n";
+
+			exec_direct(
+				"git merge --no-ff $prev_branch",
+				("git", "merge", "--no-ff", $prev_branch)
+			);
+			$? && die "E! Failed to merge branch $prev_branch into $current_branch\n";
+
+			print "  $prefix: done.\n\n";
+		}
+		else {
+			print "  $prefix: merge not need\n\n";
+		}
+
+		# ...* <-- ver-2
+		$prev_branch = $current_branch;
+	}
+
+	print "==== End of the merge ============================\n\n";
+}
+
+sub perform_the_push() {
+	print "==== Processing the push... ======================\n";
+
+	print "Summarizing default upstream branches for push\n";
+
+	my %tracks;
+	for my $branch (@branches) {
+		my $track = $branch_track{$branch};
+
+		if ($track) {
+			print "  $branch: --> $track\n";
+
+			unless ($track =~ m~(?:^|/)(?<repo>[^/]+)/(?<ref>[^/]+)$~) {
+				warn "W! Unexpected track format. Want `<repo>/<branch>` or `.../<repo>/<branch>`.\n";
+				next;
+			}
+
+			my ($repo, $ref) = ($+{repo}, $+{ref});
+
+			$tracks{$repo} = [] unless exists $tracks{$repo};
+			push @{$tracks{$repo}}, "$branch:$ref";
+		}
+		else {
+			print "  $branch: no upstream branch set\n";
+		}
+	}
+
+	print "Done.\n";
+
+	if (%tracks) {
+		print "Performing real push\n";
+
+		for my $repo (keys %tracks) {
+			my @refs = @{$tracks{$repo}};
+			print "  $repo: @refs\n";
+
+			exec_direct(
+				"git push $repo @refs",
+				("git", "push", $repo, @refs)
+			);
+			$? && die "E! Failed to push into $repo\n";
+
+			print "  $repo: Done\n\n";
+		}
+	}
+	else {
+		warn "i: No upstream branches detected. Push did nothing.\n";
+	}
+
+	print "==== End of the push =============================\n\n";
+}
+
+sub do_the_work() {
+	perform_the_pull()  if $opt{pull};
+	perform_the_merge() if $opt{merge};
+	perform_the_push()  if $opt{push};
+}
+
+
+load_options();
+validate_asked();
+do_the_work();
+
+__END__;
+
+=pod
+
+=head1 NAME
+
+git-merge-sync - a tool for merging and syncronizing cascaded branches
+in Git repository
+
+=head1 SYNOPSIS
+
+B<git-merge-sync> [I<options>] [I<actions>] [B<-->] I<branch> ...
+
+B<git-merge-sync> (B<-h> | B<-?> | B<--help> | B<--man> | B<--version>)
+
+=head1 DESCRIPTION
+
+Pulls, merges and/or pushes multiple branches with one command. For pulling and
+pushing it uses corresponding configured upstream branches.
+
+The merge action basically is oriented to automate merging cascade-like branches
+like this:
+
+    --o---------*        ver-1
+       \         \
+    ----o----o----*      ver-2
+         \    \    \
+    ------o----o----*    ver-3
+
+=head1 OPTIONS
+
+=over
+
+=item I<branch> ...
+
+Branches names for work on. At least one branch is required. All specified
+branches must be an existing local branches in the repository. The order can
+take a sense for some actions.
+
+=back
+
+=head2 Actions
+
+Specify which actions to do with the I<branch>es. If no actions passed,
+B<--pull> and B<--merge> will be performed by default.
+
+Actions always executed in the following order (if each one is present):
+
+=over
+
+=item 1. B<--pull>
+
+=item 2. B<--merge>
+
+=item 3. B<--push>
+
+=back
+
+If someone action will fail, whole execution will be stopped.
+
+=over
+
+=item B<--merge>
+
+Perform the merge action. At least two branches required for merging. Working
+directory and index both must be clean.
+
+All specified I<branch>es will be merged from left to right to construct
+"a cascade": the first branch will be merged into the second one, then
+the second branch will be merged into the third and so on. Actual merges for
+each pair will be performed only when the left branch has some commits, which
+are inaccessible from the right branch. So, if the left branch is already merged
+into the right one, then no merge needed for such pair. See EXAMPLE below.
+
+=item B<--pull>
+
+Perform the pull action. Each asked branch will be checked out and then pulled
+from its own default upstream branch (if one was configured in the repo) with
+B<git pull --ff-only> command. Working directory and index both must be clean.
+
+=item B<--push>
+
+Perform the push action. All asked branches will be pushed into corresponding
+upstream branch, if one is configured into the repo.
+
+=back
+
+=head2 Options
+
+=over
+
+=item B<-h>, B<-?>, B<--help>
+
+Print short help about usage and exit.
+
+=item B<--man>
+
+Display full man and exit.
+
+=item B<--version>
+
+Print program version and exit.
+
+=back
+
+=head1 EXAMPLE
+
+Imaging the following history with the four branches: "lorem", "ipsum", "dolor"
+and "sit":
+
+    ------o              lorem --> origin/amet
+           \
+    ---o----o            ipsum --> origin/elit
+             \
+    --o--o----o          dolor
+       \       \
+    ----o--o----o---o    sit   --> foobar/sed
+
+Some branches has a configured upstream branches:
+
+    lorem --> origin/amet
+    ipsum --> origin/elit
+    dolor     (no upstream)
+    sit   --> foobar/sed
+
+If you create some new commits on the "ipsum" branch, the history will be:
+
+    ------o                  lorem
+           \
+    ---o----o--------*--*    ipsum
+             \
+    --o--o----o              dolor
+       \       \
+    ----o--o----o---o        sit
+
+Here * are a new commits.
+
+Now you want to merge branch "ipsum" into the "dolor" and the "dolor" into
+the "sit" to produce somethig like this:
+
+    ------o                      lorem
+           \
+    ---o----o--------*--*        ipsum
+             \           \
+    --o--o----o-----------*      dolor
+       \       \           \
+    ----o--o----o---o-------*    sit
+
+But at first you perform the pull action:
+
+    $ git-merge-sync --pull lorem ipsum dolor sit
+
+If some branches was updated in the remote, you may see somethid like this:
+
+    ------o                  lorem
+           \
+    ---o----o--------*--*    ipsum
+             \
+    --o--o----o              dolor
+       \       \       
+    ----o--o----o---o--@     sit
+
+Here @ is the new commit pulled from "sit"s upstream "foobar/sed".
+
+Now you perform the merge:
+
+    $ git-merge-sync --merge lorem ipsum dolor sit
+
+This action first want to merge "lorem" into "ipsum", but "lorem" has no new
+commits to merge, so first merge is not needed. Then "ipsum" will be merged
+into "dolor" and then "dolor" will be merged into "sit":
+
+    ------o                      lorem
+           \
+    ---o----o--------*--*        ipsum
+             \           \
+    --o--o----o-----------*      dolor
+       \       \           \
+    ----o--o----o---o--@----*    sit
+
+No you can push your changes back to remotes:
+
+    $ git-merge-sync --push lorem ipsum dolor sit
+
+Branch "lorem" was no updated and branch "dolor" has no configured upstream
+branch. So this push will push "ipsum" into its "origin/elit" and "sit" into its
+"foobar/sed".
+
+You can perform all actions in one command, if you want.
+
+=head1 CONFORMING TO
+
+The tool initially was developed for Git 1.7 and later.
+
+=head1 AUTHORS
+
+Git is a free and open source SCM tool. See <http://git-scm.com/>.
+
+The tool git-merge-sync is writen by Vovan-VE <vovan-ve@yandex.ru> in 2013.
+
+=cut
