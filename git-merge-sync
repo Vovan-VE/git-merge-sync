@@ -8,7 +8,7 @@ use Pod::Usage;
 
 use constant {
 	VERSION_NAME   => 'git-merge-sync',
-	VERSION_NUMBER => '1.0.0',
+	VERSION_NUMBER => '1.0.1',
 };
 use constant {
 	VERSION => VERSION_NAME . '/' . VERSION_NUMBER,
@@ -518,7 +518,7 @@ into "dolor" and then "dolor" will be merged into "sit":
        \       \           \
     ----o--o----o---o--@----*    sit
 
-No you can push your changes back to remotes:
+Now you can push your changes back to remotes:
 
     $ git-merge-sync --push lorem ipsum dolor sit
 
