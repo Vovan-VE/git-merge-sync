@@ -518,7 +518,7 @@ into "dolor" and then "dolor" will be merged into "sit":
        \       \           \
     ----o--o----o---o--@----*    sit
 
-No you can push your changes back to remotes:
+Now you can push your changes back to remotes:
 
     $ git-merge-sync --push lorem ipsum dolor sit
 
