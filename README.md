@@ -7,7 +7,7 @@ Imaging cascade-like branches for separate versions with backward compatibility:
        \
     ----o---o--o       <-- ver-2
          \      \
-    ------o--o---o--o  <-- ver 3
+    ------o--o---o--o  <-- ver-3
 
 When You fix some bugs in any old versions You need to merge it into all next
 versions:
@@ -17,7 +17,7 @@ versions:
        \            \
     ----o---o--o-----*    <-- ver-2
          \      \     \
-    ------o--o---o--o--*  <-- ver 3
+    ------o--o---o--o--*  <-- ver-3
 
 But first You need to pull all changes from remotes to work with up-to-date
 history.
