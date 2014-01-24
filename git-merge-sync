@@ -140,10 +140,10 @@ sub exec_direct($@) {
 
 	if ($pid) {
 		close $h;
-		print $end if $end ne '';
+		print $end if $end;
 	}
 	else {
-		print $end if $end ne '';
+		print $end if $end;
 		die "Failed to open a pipe\n";
 	}
 }
