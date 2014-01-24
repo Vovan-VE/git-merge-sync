@@ -76,7 +76,9 @@ sub load_options() {
 	;
 
 	if (1 == scalar @branches) {
-		$opt{merge} && die "E! You want --merge, but only one branch was passed\n";
+		die "E! You want --merge, but only one branch was passed\n"
+			if $opt{merge}
+		;
 	}
 
 	unless ($opt{pull} || $opt{merge} || $opt{push}) {
@@ -92,13 +94,13 @@ sub check_if_repository() {
 }
 
 sub check_if_branches() {
-	my $repo_branches = `git for-each-ref '--format=%(refname:short)%09%(upstream:short)' refs/heads`;
+	my @repo_branches = `git for-each-ref '--format=%(refname:short)%09%(upstream:short)' refs/heads`;
 	$? && die "E! Unable to list existing branches. Aborted\n";
 
 	my %unknown_branches = map { $_ => 1 } @branches;
 
 	%branch_track = ();
-	for my $line ( split /\n/, $repo_branches ) {
+	for my $line (@repo_branches) {
 		# local-branch <TAB> remote/branch
 		# local-branch <TAB>
 		unless ($line =~ /^(?<local>\S+)\t(?<upstream>\S*)$/) {
@@ -294,7 +296,7 @@ sub perform_the_push() {
 
 			my ($repo, $ref) = ($+{repo}, $+{ref});
 
-			$tracks{$repo} = [] unless exists $tracks{$repo};
+			$tracks{$repo} //= [];
 			push @{$tracks{$repo}}, "$branch:$ref";
 		}
 		else {
