@@ -87,7 +87,7 @@ sub load_options() {
 }
 
 sub check_if_repository() {
-	`git status --short`;
+	system 'git status --short >/dev/null 2>&1';
 	$? && die "E! Not in Git repository. Aborting\n";
 }
 
@@ -152,10 +152,10 @@ sub is_status_clear() {
 	# если оба говорят, что изменений нет, то (могут быть только untracked)
 	# считаем статус чистым
 
-	`git diff --exit-code`;
+	system 'git diff --exit-code >/dev/null 2>&1';
 	$? && return;
 
-	`git diff --cached --exit-code`;
+	system 'git diff --cached --exit-code >/dev/null 2>&1';
 	$? && return;
 
 	return 1;
